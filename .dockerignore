@@ -1,0 +1,60 @@
+# ==========================================
+# 1. DEPENDENCIES & PACKAGE ARTIFACTS
+# ==========================================
+# Never copy local host node_modules into the container.
+# The container must install its own Linux x86_64 native binaries via npm ci.
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# ==========================================
+# 2. BUILD ARTIFACTS & CACHE
+# ==========================================
+# Exclude local compilation output so the Dockerfile builder stage
+# compiles a pristine dist/ from source.
+dist
+build
+*.tsbuildinfo
+.turbo
+
+# ==========================================
+# 3. SECRETS, CREDENTIALS & PRIVATE KEYS
+# ==========================================
+# CRITICAL: Never let credentials or environment files enter Docker build context.
+# Secrets should only be injected at runtime via environment variables or secret managers.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+cookies.txt
+
+# ==========================================
+# 4. LOGS & RUNTIME DATA
+# ==========================================
+logs
+*.log
+.pm2
+pids
+*.pid
+*.seed
+coverage
+
+# ==========================================
+# 5. VCS, DOCUMENTATION & AGENT FILES
+# ==========================================
+.git
+.github
+*.md
+.agent
+
+# ==========================================
+# 6. OS & IDE CONFIGURATIONS
+# ==========================================
+.DS_Store
+Thumbs.db
+.vscode
+.idea

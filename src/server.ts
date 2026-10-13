@@ -16,6 +16,9 @@ import aiRouter from './routes/ai.js';
 
 const app = express();
 
+// Trust the first hop (Nginx reverse proxy) for accurate req.ip and https protocol detection
+app.set('trust proxy', 1);
+
 // ==========================================
 // 1. LAYERED MIDDLEWARE (Order of execution)
 // ==========================================

@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { logger } from '../lib/logger.js';
 import { AppError } from '../lib/errors.js';
 import { config } from '../config/env.js';
+import { redis } from '../lib/redis.js';
+import { calculateActualCost, countTokens } from '../lib/tokenCost.js';
 
 // OpenAI client singleton
 const openai = new OpenAI({
@@ -112,6 +114,32 @@ export async function streamChat(req: Request, res: Response, next: NextFunction
         res.write(`event: chunk\ndata: ${JSON.stringify({ text: delta })}\n\n`);
       }
     }
+
+    // Post-call cost reconciliation: true-up estimated cost against actual output tokens
+    if (req.costTracker) {
+      try {
+        const outputTokens = countTokens(model, accumulatedOutput);
+        const inputTokens = messages.reduce((sum, m) => sum + countTokens(model, m.content ?? '') + 4, 0);
+        const actualCost = calculateActualCost(model, inputTokens, outputTokens);
+        const diff = actualCost - req.costTracker.estimatedCost;
+        const newUsedStr = await redis.incrbyfloat(req.costTracker.key, diff);
+        log.info('Token cost reconciled post-call', {
+          stage: 'cost_reconciliation',
+          model,
+          inputTokens,
+          outputTokens,
+          estimatedCostUSD: +req.costTracker.estimatedCost.toFixed(6),
+          actualCostUSD: +actualCost.toFixed(6),
+          diffUSD: +diff.toFixed(6),
+          totalDailyCostUSD: +parseFloat(newUsedStr).toFixed(6)
+        });
+      } catch (costErr: any) {
+        log.error('Failed to reconcile post-call cost in Redis', {
+          error: costErr.message
+        });
+      }
+    }
+
 
     const latencyMs = Date.now() - startMs;
 
